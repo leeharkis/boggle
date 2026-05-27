@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big Boggle Solver</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 30px; }
+h1 { color: #FF9900; margin-bottom: 12px; }
+.container { display: flex; gap: 40px; flex-wrap: wrap; justify-content: center; }
+.grid-section { display: flex; flex-direction: column; align-items: center; }
+.grid { display: grid; gap: 5px; margin-bottom: 12px; user-select: none; }
+.cell { display: flex; align-items: center; justify-content: center; font-weight: bold; text-transform: uppercase; border: 2px solid #ccc; border-radius: 8px; background: #fff; color: #333; cursor: pointer; transition: all 0.1s; }
+.cell:hover { border-color: #666; }
+.cell.selected { background: #FF9900; color: #000; border-color: #FF9900; }
+.cell.last-selected { background: #ffcc66; color: #000; border-color: #ffcc66; }
+.cell.invalid { background: #dc3545; color: #fff; border-color: #dc3545; }
+.cell-input { text-align: center; font-weight: bold; text-transform: uppercase; border: 2px solid #ccc; border-radius: 8px; background: #fff; color: #333; outline: none; }
+.cell-input:focus { border-color: #FF9900; }
+.current-word { font-size: 24px; font-weight: bold; color: #FF9900; min-height: 36px; margin-bottom: 10px; font-family: monospace; }
+.btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin: 4px; }
+.btn-submit { background: #28a745; color: white; }
+.btn-submit:hover { background: #2ecc71; }
+.btn-undo { background: #555; color: white; }
+.btn-undo:hover { background: #777; }
+.btn-clear-word { background: #dc3545; color: white; }
+.btn-clear-word:hover { background: #e74c3c; }
+.btn-solve { background: #FF9900; color: #000; }
+.btn-solve:hover { background: #ffad33; }
+.btn-random { background: #6f42c1; color: #fff; }
+.btn-random:hover { background: #8b5cf6; }
+.btn-reset { background: #555; color: #fff; }
+.btn-reset:hover { background: #777; }
+.btn-edit { background: #146eb4; color: white; }
+.btn-edit:hover { background: #1a8cdb; }
+.buttons { margin-bottom: 10px; }
+.side-panel { max-width: 300px; width: 100%; }
+.panel-header { font-size: 16px; font-weight: bold; color: #FF9900; margin-bottom: 8px; }
+.found-list { list-style: none; max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 8px; background: #fff; margin-bottom: 16px; }
+.found-list li { padding: 4px 8px; font-family: monospace; font-size: 14px; border-radius: 3px; margin-bottom: 2px; }
+.found-list li.valid { color: #28a745; }
+.found-list li.invalid-word { color: #dc3545; text-decoration: line-through; }
+</style>
+<style>
+.found-list li.duplicate { color: #666; text-decoration: line-through; }
+.missed-section { margin-top: 16px; }
+.missed-header { font-size: 16px; font-weight: bold; color: #dc3545; margin-bottom: 8px; }
+.missed-list { list-style: none; max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 8px; background: #fff; }
+.missed-list li { padding: 3px 8px; font-family: monospace; font-size: 13px; color: #333; }
+.score-box { background: #fff; border: 2px solid #FF9900; padding: 12px; border-radius: 6px; margin-bottom: 16px; text-align: center; }
+.score-box .score { font-size: 28px; font-weight: bold; color: #FF9900; }
+.score-box .label { font-size: 12px; color: #666; }
+.status { margin: 8px 0; font-size: 13px; color: #666; }
+.mode-label { font-size: 12px; color: #6f42c1; margin-bottom: 8px; font-weight: bold; }
+.lang-toggle { display: flex; gap: 8px; align-items: center; }
+.lang-btn { padding: 6px 14px; border: 2px solid #ccc; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; background: #fff; color: #333; transition: all 0.15s; }
+.lang-btn.active { border-color: #FF9900; background: #FF9900; color: #000; }
+.lang-btn:hover { border-color: #FF9900; }
+.options-panel { margin-bottom: 16px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0; max-width: 360px; width: 100%; }
+.options-panel summary { padding: 10px 16px; font-weight: bold; font-size: 14px; cursor: pointer; color: #555; }
+.options-panel[open] summary { border-bottom: 1px solid #eee; }
+.options-content { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
+.option-row { display: flex; align-items: center; justify-content: space-between; }
+.option-label { font-size: 13px; color: #555; font-weight: 500; }
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; border-radius: 24px; transition: 0.2s; }
+.switch .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+.switch input:checked + .slider { background: #FF9900; }
+.switch input:checked + .slider:before { transform: translateX(20px); }
+</style>
+</head>
+<body>
+<h1 id="gameTitle">🎲 Big Boggle (5×5)</h1>
+<details class="options-panel" id="optionsPanel">
+    <summary id="optionsSummary">Options</summary>
+    <div class="options-content">
+        <div class="option-row">
+            <span class="option-label">Language</span>
+            <div class="lang-toggle">
+                <button class="lang-btn active" id="langEN" onclick="switchLanguage('en')"><img src="https://flagcdn.com/w40/gb.png" alt="EN" style="height:24px;vertical-align:middle;"></button>
+                <button class="lang-btn" id="langDE" onclick="switchLanguage('de')"><img src="https://flagcdn.com/w40/de.png" alt="DE" style="height:24px;vertical-align:middle;"></button>
+            </div>
+        </div>
+        <div class="option-row">
+            <span class="option-label">Word hints</span>
+            <label class="switch"><input type="checkbox" id="hintsToggle" checked><span class="slider"></span></label>
+        </div>
+        <div class="option-row">
+            <span class="option-label" id="labelGridSize">Grid size</span>
+            <div class="lang-toggle">
+                <button class="lang-btn" id="size4" onclick="switchGridSize(4)">4×4</button>
+                <button class="lang-btn active" id="size5" onclick="switchGridSize(5)">5×5</button>
+                <button class="lang-btn" id="size6" onclick="switchGridSize(6)">6×6</button>
+            </div>
+        </div>
+        <div class="option-row">
+            <span class="option-label">Word obscurity</span>
+            <div class="lang-toggle">
+                <button class="lang-btn active" id="modeNormal" onclick="switchDictMode('normal')">🎯 Normal</button>
+                <button class="lang-btn" id="modeBuddy" onclick="switchDictMode('buddy')">🤓 Buddy</button>
+            </div>
+        </div>
+        <div id="dictCount" style="font-size:11px;color:#999;text-align:right;"></div>
+    </div>
+</details>
+<div id="status" class="status">Loading dictionary...</div>
+<div class="container">
+    <div class="grid-section">
+        <div id="modeLabel" class="mode-label">SETUP MODE — enter letters</div>
+        <div class="grid" id="grid"></div>
+        <div class="current-word" id="currentWord"></div>
+        <div id="hints" style="min-height:20px;margin-bottom:10px;max-width:340px;line-height:1.8;text-align:center;"></div>
+        <div class="buttons">
+            <button class="btn btn-submit" id="submitBtn" style="display:none;">✓ Submit Word</button>
+            <button class="btn btn-undo" id="undoBtn" style="display:none;">← Undo</button>
+            <button class="btn btn-clear-word" id="clearWordBtn" style="display:none;">✗ Clear</button>
+        </div>
+        <div class="buttons">
+            <button class="btn btn-random" id="randomBtn">Random Board</button>
+            <button class="btn btn-edit" id="editBtn" style="display:none;">✏ Edit Board</button>
+            <button class="btn btn-reset" id="resetBtn" style="display:none;">Reset Game</button>
+            <button class="btn btn-solve" id="solveBtn" style="display:none;">🔍 Check & Solve</button>
+        </div>
+    </div>
+    <div class="side-panel" id="sidePanel" style="display:none;">
+        <div class="score-box">
+            <div class="label">Your Score</div>
+            <div class="score" id="yourScore">0</div>
+        </div>
+        <div class="panel-header">Your Words (<span id="foundCount">0</span>)</div>
+        <ul class="found-list" id="foundList"></ul>
+        <div id="missedSection" class="missed-section" style="display:none;">
+            <div class="missed-header">Missed Words (<span id="missedCount">0</span>)</div>
+            <ul class="missed-list" id="missedList"></ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// === DICE CONFIGURATIONS ===
+const DICE = {
+    en: {
+        4: [
+            'AAEEGN','ELRTTY','AOOTTW','ABBJOO',
+            'EHRTVW','CIMOTU','DISTTY','EIOSST',
+            'DELRVY','ACHOPS','HIMNQU','EEINSU',
+            'EEGHNW','AFFKPS','HLNNRZ','DEILRX'
+        ],
+        5: [
+            'AAAFRS','AAEEEE','AAFIRS','ADENNN','AEEEEM',
+            'AEEGMU','AEGMNN','AFIRSY','BJKQXZ','CCENST',
+            'CEIILT','CEILPT','CEIPST','DDHNOT','DHHLOR',
+            'DHLNOR','DHLNOR','EIIITT','EMOTTT','ENSSSU',
+            'FIPRSY','GORRVW','IPRRRY','NOOTUW','OOOTTU'
+        ],
+        6: [
+            'AAAFRS','AAEEEE','AAFIRS','ADENNN','AEEEEM',
+            'AEEGMU','AEGMNN','AFIRSY','BJKQXZ','CCENST',
+            'CEIILT','CEILPT','CEIPST','DDHNOT','DHHLOR',
+            'DHLNOR','DHLNOR','EIIITT','EMOTTT','ENSSSU',
+            'FIPRSY','GORRVW','IPRRRY','NOOTUW','OOOTTU',
+            'AAEEGN','ELRTTY','AOOTTW','ABBJOO','EHRTVW',
+            'CIMOTU','DISTTY','EIOSST','DELRVY','ACHOPS',
+            'HIMNQU'
+        ]
+    },
+    de: {
+        4: [
+            'EEEENS','EEEINR','AAEEIN','RRSSTT',
+            'NNSSEE','HHLLRR','IIMNST','AADEER',
+            'EEGNST','EEILRT','AEINOR','ADELNS',
+            'EHINRS','AEGNRU','EIORST','ÜÖÄEEI'
+        ],
+        5: [
+            'EEEENS','EEEINR','AAEEIN','RRSSTT','NNSSEE',
+            'HHLLRR','IIMNST','AADEER','BFGKWZ','CCDDMM',
+            'EEGNST','EEILRT','AEINOR','ADELNS','EHINRS',
+            'AEGNRU','EIORST','ÜÖÄEEI','BFGKPW','DGLNOR',
+            'AEILTU','CHNSTU','AEORSU','EFHINT','JVXYÜÖ'
+        ],
+        6: [
+            'EEEENS','EEEINR','AAEEIN','RRSSTT','NNSSEE',
+            'HHLLRR','IIMNST','AADEER','BFGKWZ','CCDDMM',
+            'EEGNST','EEILRT','AEINOR','ADELNS','EHINRS',
+            'AEGNRU','EIORST','ÜÖÄEEI','BFGKPW','DGLNOR',
+            'AEILTU','CHNSTU','AEORSU','EFHINT','JVXYÜÖ',
+            'EEEENS','EEEINR','AAEEIN','RRSSTT','NNSSEE',
+            'HHLLRR','IIMNST','AADEER','EEGNST','EEILRT',
+            'AEINOR'
+        ]
+    }
+};
+
+let gridSize = 5; // 4, 5, or 6
+
+// === DICTIONARY URLS ===
+const DICT_URLS = {
+    en_normal: 'https://raw.githubusercontent.com/first20hours/google-10000-english/master/20k.txt',
+    en_buddy: 'https://raw.githubusercontent.com/jesstess/Scrabble/master/scrabble/sowpods.txt',
+    de_normal: 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2016/de/de_50k.txt',
+    de_buddy: 'https://raw.githubusercontent.com/enz/german-wordlist/master/words'
+};
+const MAX_WORDS_NORMAL = 20000;
+const MAX_WORDS_BUDDY = Infinity;
+
+let currentLang = 'en';
+let currentDictMode = 'normal'; // 'normal' or 'buddy'
+let trie = null;
+let dictionary = new Set();
+let boardLetters = [];
+let mode = 'setup';
+let selectedPath = [];
+let foundWords = [];
+let dictCache = {}; // keyed by 'en_normal', 'en_buddy', etc.
+
+// === TRANSLATIONS ===
+const i18n = {
+    en: {
+        title: '🎲 Big Boggle (5×5)',
+        options: 'Options',
+        language: 'Language',
+        wordHints: 'Word hints',
+        wordObscurity: 'Word obscurity',
+        normal: '🎯 Normal',
+        buddy: '🤓 Buddy',
+        setupMode: 'SETUP MODE — enter letters',
+        playMode: 'PLAY MODE — click letters to trace words',
+        submit: '✓ Submit Word',
+        undo: '← Undo',
+        clear: '✗ Clear',
+        random: 'Random Board',
+        edit: '✏ Edit Board',
+        reset: 'Reset Game',
+        solve: '🔍 Check & Solve',
+        yourScore: 'Your Score',
+        yourWords: 'Your Words',
+        missedWords: 'Missed Words',
+        loading: 'Loading dictionary...',
+        loadingDict: (label) => `Loading ${label} dictionary...`,
+        dictLoaded: (count, label) => `Dictionary loaded: ${count} words (${label}). Enter letters or click Random.`,
+        dictLoadedOffline: (count, label) => `Dictionary loaded: ${count} words (${label}). ✈️ Available offline. Enter letters or click Random.`,
+        dictFailed: 'Failed to load dictionary. Check your connection.',
+        buddyOffline: "Buddy mode has so many obscure and almost, but not quite made up words that it needs to be online, and we aren't at the moment.",
+        noWords: 'No words possible',
+        tooShort: 'Word must be at least 3 letters.',
+        alreadySubmitted: (w) => `"${w}" already submitted.`,
+        added: (w) => `Added "${w}"`,
+        playStatus: 'Click letters on the grid to trace words, then submit.',
+        resetStatus: 'Game reset. Find words!',
+        fillAll: `Fill in all cells.`,
+        dictNotLoaded: 'Dictionary not loaded yet.',
+        solved: (found, total) => `SOLVED — You found ${found}/${total} words`,
+        solvedStatus: (valid, invalid, missed, total) => `${valid} valid, ${invalid} invalid, ${missed} missed. Total possible: ${total}`,
+        labelNormal: 'Common English',
+        labelBuddy: 'SOWPODS/Full Scrabble',
+        labelLoadNormal: 'English',
+        labelLoadBuddy: 'full English (SOWPODS)'
+    },
+    de: {
+        title: '🎲 Großes Boggle (5×5)',
+        options: 'Optionen',
+        language: 'Sprache',
+        wordHints: 'Worthinweise',
+        wordObscurity: 'Wortschwierigkeit',
+        normal: '🎯 Normal',
+        buddy: '🤓 Buddy',
+        setupMode: 'EINGABE — Buchstaben eingeben',
+        playMode: 'SPIELEN — Buchstaben anklicken',
+        submit: '✓ Wort abgeben',
+        undo: '← Zurück',
+        clear: '✗ Löschen',
+        random: 'Zufälliges Brett',
+        edit: '✏ Brett bearbeiten',
+        reset: 'Spiel zurücksetzen',
+        solve: '🔍 Prüfen & Lösen',
+        yourScore: 'Deine Punkte',
+        yourWords: 'Deine Wörter',
+        missedWords: 'Verpasste Wörter',
+        loading: 'Wörterbuch wird geladen...',
+        loadingDict: (label) => `${label} Wörterbuch wird geladen...`,
+        dictLoaded: (count, label) => `Wörterbuch geladen: ${count} Wörter (${label}). Buchstaben eingeben oder Zufällig klicken.`,
+        dictLoadedOffline: (count, label) => `Wörterbuch geladen: ${count} Wörter (${label}). ✈️ Offline verfügbar. Buchstaben eingeben oder Zufällig klicken.`,
+        dictFailed: 'Wörterbuch konnte nicht geladen werden. Verbindung prüfen.',
+        buddyOffline: 'Der Buddy-Modus hat so viele obskure und fast schon erfundene Wörter, dass er online sein muss — und das sind wir gerade nicht.',
+        noWords: 'Keine Wörter möglich',
+        tooShort: 'Wort muss mindestens 3 Buchstaben haben.',
+        alreadySubmitted: (w) => `"${w}" bereits eingegeben.`,
+        added: (w) => `"${w}" hinzugefügt`,
+        playStatus: 'Buchstaben anklicken um Wörter zu bilden, dann abgeben.',
+        resetStatus: 'Spiel zurückgesetzt. Finde Wörter!',
+        fillAll: 'Bitte alle Felder ausfüllen.',
+        dictNotLoaded: 'Wörterbuch noch nicht geladen.',
+        solved: (found, total) => `GELÖST — Du hast ${found}/${total} Wörter gefunden`,
+        solvedStatus: (valid, invalid, missed, total) => `${valid} gültig, ${invalid} ungültig, ${missed} verpasst. Insgesamt möglich: ${total}`,
+        labelNormal: 'Häufiges Deutsch',
+        labelBuddy: 'Volles Deutsch',
+        labelLoadNormal: 'Deutsch',
+        labelLoadBuddy: 'volles Deutsch'
+    }
+};
+
+function t(key) { return i18n[currentLang][key]; }
+
+function updateUILanguage() {
+    updateTitle();
+    document.title = currentLang === 'de' ? 'Großes Boggle' : 'Big Boggle Solver';
+    document.getElementById('optionsSummary').textContent = t('options');
+    document.querySelectorAll('.option-label')[0].textContent = t('language');
+    document.querySelectorAll('.option-label')[1].textContent = t('wordHints');
+    document.getElementById('labelGridSize').textContent = currentLang === 'de' ? 'Spielfeldgröße' : 'Grid size';
+    document.querySelectorAll('.option-label')[3].textContent = t('wordObscurity');
+    document.getElementById('modeNormal').textContent = t('normal');
+    document.getElementById('modeBuddy').textContent = t('buddy');
+    document.getElementById('submitBtn').textContent = t('submit');
+    document.getElementById('undoBtn').textContent = t('undo');
+    document.getElementById('clearWordBtn').textContent = t('clear');
+    document.getElementById('randomBtn').textContent = t('random');
+    document.getElementById('editBtn').textContent = t('edit');
+    document.getElementById('resetBtn').textContent = t('reset');
+    document.getElementById('solveBtn').textContent = t('solve');
+    document.querySelector('.score-box .label').textContent = t('yourScore');
+    document.querySelector('.panel-header').innerHTML = `${t('yourWords')} (<span id="foundCount">${foundWords.length}</span>)`;
+    document.querySelector('.missed-header').innerHTML = `${t('missedWords')} (<span id="missedCount">0</span>)`;
+    if (mode === 'setup') document.getElementById('modeLabel').textContent = t('setupMode');
+    else if (mode === 'play') document.getElementById('modeLabel').textContent = t('playMode');
+    updateDictCount();
+}
+
+function updateDictCount() {
+    const el = document.getElementById('dictCount');
+    if (dictionary.size > 0) {
+        const count = dictionary.size.toLocaleString();
+        el.textContent = currentLang === 'de' ? `${count} Wörter geladen` : `${count} words loaded`;
+    } else {
+        el.textContent = '';
+    }
+}
+
+// === TRIE ===
+class TrieNode {
+    constructor() { this.children = {}; this.isWord = false; }
+}
+function buildTrie(words) {
+    const root = new TrieNode();
+    for (const word of words) {
+        let node = root;
+        for (const ch of word) {
+            if (!node.children[ch]) node.children[ch] = new TrieNode();
+            node = node.children[ch];
+        }
+        node.isWord = true;
+    }
+    return root;
+}
+
+// === LOAD DICTIONARY ===
+async function loadDictionary(lang, dictMode) {
+    const key = `${lang}_${dictMode}`;
+    if (dictCache[key]) {
+        dictionary = dictCache[key].dict;
+        trie = dictCache[key].trie;
+        updateDictCount();
+        document.getElementById('status').textContent = '';
+        return;
+    }
+    const label = dictMode === 'buddy' ? t('labelLoadBuddy') : t('labelLoadNormal');
+    document.getElementById('status').textContent = t('loadingDict')(label);
+    try {
+        const url = DICT_URLS[key];
+        const resp = await fetch(url);
+        const text = await resp.text();
+        const maxWords = dictMode === 'buddy' ? MAX_WORDS_BUDDY : MAX_WORDS_NORMAL;
+        let words = [];
+        const lines = text.split('\n');
+        for (const line of lines) {
+            if (words.length >= maxWords) break;
+            let word;
+            if (lang === 'de' && dictMode === 'normal') {
+                word = line.split(' ')[0].trim().toUpperCase();
+            } else {
+                word = line.trim().toUpperCase();
+            }
+            if (word.length < 3) continue;
+            if (lang === 'en' && !/^[A-Z]+$/.test(word)) continue;
+            if (lang === 'de' && !/^[A-ZÄÖÜ]+$/.test(word)) continue;
+            words.push(word);
+        }
+        const newDict = new Set(words);
+        const newTrie = buildTrie(words);
+        dictCache[key] = { dict: newDict, trie: newTrie };
+        dictionary = newDict;
+        trie = newTrie;
+        updateDictCount();
+        document.getElementById('status').textContent = '';
+    } catch (e) {
+        document.getElementById('status').textContent = dictMode === 'buddy' ? t('buddyOffline') : t('dictFailed');
+    }
+}
+
+// === DICT MODE SWITCH ===
+function switchDictMode(dictMode) {
+    if (dictMode === currentDictMode) return;
+    currentDictMode = dictMode;
+    document.getElementById('modeNormal').classList.toggle('active', dictMode === 'normal');
+    document.getElementById('modeBuddy').classList.toggle('active', dictMode === 'buddy');
+    mode = 'setup';
+    foundWords = [];
+    selectedPath = [];
+    boardLetters = [];
+    buildSetupGrid();
+    document.getElementById('modeLabel').textContent = t('setupMode');
+    document.getElementById('submitBtn').style.display = 'none';
+    document.getElementById('undoBtn').style.display = 'none';
+    document.getElementById('clearWordBtn').style.display = 'none';
+    document.getElementById('solveBtn').style.display = 'none';
+    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('resetBtn').style.display = 'none';
+    document.getElementById('randomBtn').style.display = '';
+    document.getElementById('sidePanel').style.display = 'none';
+    loadDictionary(currentLang, currentDictMode);
+}
+
+// === LANGUAGE SWITCH ===
+function switchLanguage(lang) {
+    if (lang === currentLang) return;
+    currentLang = lang;
+    document.getElementById('langEN').classList.toggle('active', lang === 'en');
+    document.getElementById('langDE').classList.toggle('active', lang === 'de');
+    updateUILanguage();
+    mode = 'setup';
+    foundWords = [];
+    selectedPath = [];
+    boardLetters = [];
+    buildSetupGrid();
+    document.getElementById('modeLabel').textContent = t('setupMode');
+    document.getElementById('submitBtn').style.display = 'none';
+    document.getElementById('undoBtn').style.display = 'none';
+    document.getElementById('clearWordBtn').style.display = 'none';
+    document.getElementById('solveBtn').style.display = 'none';
+    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('resetBtn').style.display = 'none';
+    document.getElementById('randomBtn').style.display = '';
+    document.getElementById('sidePanel').style.display = 'none';
+    loadDictionary(lang, currentDictMode);
+}
+
+// === GRID SIZE SWITCH ===
+function switchGridSize(size) {
+    if (size === gridSize) return;
+    gridSize = size;
+    document.getElementById('size4').classList.toggle('active', size === 4);
+    document.getElementById('size5').classList.toggle('active', size === 5);
+    document.getElementById('size6').classList.toggle('active', size === 6);
+    updateTitle();
+    mode = 'setup';
+    foundWords = [];
+    selectedPath = [];
+    boardLetters = [];
+    buildSetupGrid();
+    document.getElementById('modeLabel').textContent = t('setupMode');
+    document.getElementById('submitBtn').style.display = 'none';
+    document.getElementById('undoBtn').style.display = 'none';
+    document.getElementById('clearWordBtn').style.display = 'none';
+    document.getElementById('solveBtn').style.display = 'none';
+    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('resetBtn').style.display = 'none';
+    document.getElementById('randomBtn').style.display = '';
+    document.getElementById('sidePanel').style.display = 'none';
+}
+
+function updateTitle() {
+    const names = { en: { 4: 'Boggle', 5: 'Big Boggle', 6: 'Super Boggle' }, de: { 4: 'Boggle', 5: 'Großes Boggle', 6: 'Super Boggle' } };
+    document.getElementById('gameTitle').textContent = `🎲 ${names[currentLang][gridSize]} (${gridSize}×${gridSize})`;
+}
+
+// === GRID BUILDING ===
+const gridEl = document.getElementById('grid');
+
+function getCellSize() {
+    if (gridSize === 4) return 64;
+    if (gridSize === 5) return 58;
+    return 48;
+}
+
+function updateGridCSS() {
+    const size = getCellSize();
+    gridEl.style.gridTemplateColumns = `repeat(${gridSize}, ${size}px)`;
+}
+
+function buildSetupGrid() {
+    gridEl.innerHTML = '';
+    updateGridCSS();
+    const size = getCellSize();
+    const fontSize = gridSize === 6 ? 20 : 26;
+    const totalCells = gridSize * gridSize;
+    for (let i = 0; i < totalCells; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'cell-input';
+        input.maxLength = 2;
+        input.dataset.idx = i;
+        input.value = boardLetters[i] || '';
+        input.style.width = size + 'px';
+        input.style.height = size + 'px';
+        input.style.fontSize = fontSize + 'px';
+        input.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+            if (e.target.value.length >= 1) {
+                const next = gridEl.children[i + 1];
+                if (next) next.focus();
+            }
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && e.target.value === '') {
+                const prev = gridEl.children[i - 1];
+                if (prev) prev.focus();
+            }
+            if (e.key === 'Enter') startPlay();
+        });
+        gridEl.appendChild(input);
+    }
+}
+
+function buildPlayGrid() {
+    gridEl.innerHTML = '';
+    updateGridCSS();
+    const size = getCellSize();
+    const fontSize = gridSize === 6 ? 20 : 26;
+    const totalCells = gridSize * gridSize;
+    for (let i = 0; i < totalCells; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.idx = i;
+        cell.textContent = boardLetters[i];
+        cell.style.width = size + 'px';
+        cell.style.height = size + 'px';
+        cell.style.fontSize = fontSize + 'px';
+        cell.addEventListener('click', () => cellClicked(i));
+        gridEl.appendChild(cell);
+    }
+}
+
+// === PLAY LOGIC ===
+function cellClicked(idx) {
+    if (mode !== 'play') return;
+    if (selectedPath.includes(idx)) return;
+    if (selectedPath.length > 0) {
+        const last = selectedPath[selectedPath.length - 1];
+        if (!getNeighbors(last).includes(idx)) return;
+    }
+    selectedPath.push(idx);
+    updateGridHighlight();
+    updateCurrentWord();
+}
+
+function getNeighbors(idx) {
+    const row = Math.floor(idx / gridSize), col = idx % gridSize;
+    const neighbors = [];
+    for (let dr = -1; dr <= 1; dr++) {
+        for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const nr = row + dr, nc = col + dc;
+            if (nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize) neighbors.push(nr * gridSize + nc);
+        }
+    }
+    return neighbors;
+}
+
+function updateGridHighlight() {
+    const cells = gridEl.querySelectorAll('.cell');
+    cells.forEach((c, i) => {
+        c.classList.remove('selected', 'last-selected');
+        if (selectedPath.includes(i)) {
+            c.classList.add(i === selectedPath[selectedPath.length - 1] ? 'last-selected' : 'selected');
+        }
+    });
+}
+
+function updateCurrentWord() {
+    const word = selectedPath.map(i => boardLetters[i]).join('');
+    const isValid = word.length >= 3 && dictionary.has(word);
+    document.getElementById('currentWord').innerHTML = word
+        ? `<span style="color:${isValid ? '#28a745' : '#333'}">${word}</span>${isValid ? ' ✓' : ''}`
+        : '';
+    updateHints();
+}
+
+function updateHints() {
+    const hintsEl = document.getElementById('hints');
+    if (!hintsEl) return;
+    if (!document.getElementById('hintsToggle').checked) { hintsEl.innerHTML = ''; return; }
+    if (selectedPath.length === 0 || !trie) { hintsEl.innerHTML = ''; return; }
+
+    const currentWord = selectedPath.map(i => boardLetters[i]).join('');
+
+    function getTrieNode(word) {
+        let node = trie;
+        for (const ch of word) {
+            if (!node.children[ch]) return null;
+            node = node.children[ch];
+        }
+        return node;
+    }
+
+    const startNode = getTrieNode(currentWord);
+    if (!startNode) { hintsEl.innerHTML = `<span style="color:#dc3545;font-size:12px;">${t('noWords')}</span>`; return; }
+
+    function findCompletions(idx, node, path, word, results) {
+        if (results.length >= 15) return;
+        if (word.length >= 3 && node.isWord) results.push(word);
+        for (const n of getNeighbors(idx)) {
+            if (path.includes(n)) continue;
+            const letter = boardLetters[n];
+            let current = node;
+            let valid = true;
+            for (const ch of letter) {
+                if (!current.children[ch]) { valid = false; break; }
+                current = current.children[ch];
+            }
+            if (valid) findCompletions(n, current, [...path, n], word + letter, results);
+        }
+    }
+
+    const completions = [];
+    const lastIdx = selectedPath[selectedPath.length - 1];
+    findCompletions(lastIdx, startNode, [...selectedPath], currentWord, completions);
+
+    if (currentWord.length >= 3 && startNode.isWord && !completions.includes(currentWord)) {
+        completions.unshift(currentWord);
+    }
+
+    const unique = [...new Set(completions)].sort((a, b) => a.length - b.length || a.localeCompare(b));
+
+    if (unique.length === 0) {
+        hintsEl.innerHTML = `<span style="color:#dc3545;font-size:12px;">${t('noWords')}</span>`;
+    } else {
+        hintsEl.innerHTML = unique.map(w => {
+            const isExact = w === currentWord;
+            return `<span style="font-family:monospace;font-size:12px;padding:1px 4px;border-radius:2px;${isExact ? 'background:#28a745;color:white;' : 'color:#666;'}">${w.toLowerCase()}</span>`;
+        }).join(' ');
+    }
+}
+
+function clearSelection() {
+    selectedPath = [];
+    updateGridHighlight();
+    updateCurrentWord();
+    const hintsEl = document.getElementById('hints');
+    if (hintsEl) hintsEl.innerHTML = '';
+}
+
+function undoLast() {
+    selectedPath.pop();
+    updateGridHighlight();
+    updateCurrentWord();
+}
+
+function submitWord() {
+    const word = selectedPath.map(i => boardLetters[i]).join('');
+    if (word.length < 3) { document.getElementById('status').textContent = t('tooShort'); return; }
+    if (foundWords.includes(word)) { document.getElementById('status').textContent = t('alreadySubmitted')(word); return; }
+    foundWords.push(word);
+    updateFoundList();
+    clearSelection();
+    document.getElementById('status').textContent = t('added')(word);
+}
+
+function updateFoundList() {
+    const list = document.getElementById('foundList');
+    list.innerHTML = '';
+    foundWords.forEach(w => {
+        const li = document.createElement('li');
+        li.textContent = w.toLowerCase();
+        list.appendChild(li);
+    });
+    document.getElementById('foundCount').textContent = foundWords.length;
+    document.getElementById('yourScore').textContent = foundWords.reduce((s, w) => s + scoreWord(w), 0);
+}
+
+function scoreWord(word) {
+    const len = word.length;
+    if (len <= 4) return 1;
+    if (len === 5) return 2;
+    if (len === 6) return 3;
+    if (len === 7) return 5;
+    return 11;
+}
+
+// === START PLAY ===
+function startPlay() {
+    boardLetters = [];
+    const totalCells = gridSize * gridSize;
+    for (let i = 0; i < totalCells; i++) {
+        const val = gridEl.children[i].value.toUpperCase();
+        if (!val) { alert(t('fillAll')); return; }
+        boardLetters.push(val);
+    }
+    mode = 'play';
+    foundWords = [];
+    selectedPath = [];
+    buildPlayGrid();
+    document.getElementById('modeLabel').textContent = t('playMode');
+    document.getElementById('submitBtn').style.display = '';
+    document.getElementById('undoBtn').style.display = '';
+    document.getElementById('clearWordBtn').style.display = '';
+    document.getElementById('solveBtn').style.display = '';
+    document.getElementById('editBtn').style.display = '';
+    document.getElementById('resetBtn').style.display = '';
+    document.getElementById('randomBtn').style.display = 'none';
+    document.getElementById('sidePanel').style.display = '';
+    document.getElementById('missedSection').style.display = 'none';
+    updateFoundList();
+    document.getElementById('status').textContent = t('playStatus');
+}
+
+// === SOLVE ===
+function solveBoard() {
+    if (!trie) { alert(t('dictNotLoaded')); return; }
+    mode = 'solved';
+    const allWords = new Set();
+
+    function dfs(idx, node, path, word) {
+        const letter = boardLetters[idx];
+        let current = node;
+        for (const ch of letter) {
+            if (!current.children[ch]) return;
+            current = current.children[ch];
+        }
+        const newWord = word + letter;
+        const newPath = [...path, idx];
+        if (newWord.length >= 3 && current.isWord) allWords.add(newWord);
+        for (const n of getNeighbors(idx)) {
+            if (!newPath.includes(n)) dfs(n, current, newPath, newWord);
+        }
+    }
+    for (let i = 0; i < gridSize * gridSize; i++) dfs(i, trie, [], '');
+
+    const validFound = [];
+    const invalidFound = [];
+    foundWords.forEach(w => {
+        if (allWords.has(w)) validFound.push(w);
+        else invalidFound.push(w);
+    });
+
+    const missed = [...allWords].filter(w => !foundWords.includes(w)).sort((a, b) => b.length - a.length || a.localeCompare(b));
+
+    const list = document.getElementById('foundList');
+    list.innerHTML = '';
+    foundWords.forEach(w => {
+        const li = document.createElement('li');
+        li.textContent = w.toLowerCase();
+        li.className = allWords.has(w) ? 'valid' : 'invalid-word';
+        list.appendChild(li);
+    });
+
+    const missedList = document.getElementById('missedList');
+    missedList.innerHTML = '';
+    missed.forEach(w => {
+        const li = document.createElement('li');
+        li.textContent = w.toLowerCase();
+        missedList.appendChild(li);
+    });
+    document.getElementById('missedCount').textContent = missed.length;
+    document.getElementById('missedSection').style.display = '';
+
+    document.getElementById('yourScore').textContent = validFound.reduce((s, w) => s + scoreWord(w), 0);
+
+    document.getElementById('submitBtn').style.display = 'none';
+    document.getElementById('undoBtn').style.display = 'none';
+    document.getElementById('clearWordBtn').style.display = 'none';
+    document.getElementById('solveBtn').style.display = 'none';
+    document.getElementById('modeLabel').textContent = t('solved')(validFound.length, allWords.size);
+    document.getElementById('status').textContent = t('solvedStatus')(validFound.length, invalidFound.length, missed.length, allWords.size);
+}
+
+// === RANDOM BOARD ===
+function randomBoard() {
+    const dice = DICE[currentLang][gridSize];
+    const shuffled = [...dice].sort(() => Math.random() - 0.5);
+    const totalCells = gridSize * gridSize;
+    boardLetters = [];
+    for (let i = 0; i < totalCells; i++) {
+        const die = shuffled[i];
+        const face = die[Math.floor(Math.random() * 6)];
+        boardLetters.push(face);
+    }
+    mode = 'play';
+    foundWords = [];
+    selectedPath = [];
+    buildPlayGrid();
+    document.getElementById('modeLabel').textContent = t('playMode');
+    document.getElementById('submitBtn').style.display = '';
+    document.getElementById('undoBtn').style.display = '';
+    document.getElementById('clearWordBtn').style.display = '';
+    document.getElementById('solveBtn').style.display = '';
+    document.getElementById('editBtn').style.display = '';
+    document.getElementById('resetBtn').style.display = '';
+    document.getElementById('randomBtn').style.display = 'none';
+    document.getElementById('sidePanel').style.display = '';
+    document.getElementById('missedSection').style.display = 'none';
+    updateFoundList();
+    document.getElementById('status').textContent = t('playStatus');
+}
+
+// === EDIT / RESET ===
+function editBoard() {
+    mode = 'setup';
+    buildSetupGrid();
+    document.getElementById('modeLabel').textContent = t('setupMode');
+    document.getElementById('submitBtn').style.display = 'none';
+    document.getElementById('undoBtn').style.display = 'none';
+    document.getElementById('clearWordBtn').style.display = 'none';
+    document.getElementById('solveBtn').style.display = 'none';
+    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('resetBtn').style.display = 'none';
+    document.getElementById('randomBtn').style.display = '';
+    document.getElementById('sidePanel').style.display = 'none';
+}
+
+function resetGame() {
+    foundWords = [];
+    selectedPath = [];
+    mode = 'play';
+    buildPlayGrid();
+    updateFoundList();
+    document.getElementById('missedSection').style.display = 'none';
+    document.getElementById('modeLabel').textContent = t('playMode');
+    document.getElementById('submitBtn').style.display = '';
+    document.getElementById('undoBtn').style.display = '';
+    document.getElementById('clearWordBtn').style.display = '';
+    document.getElementById('solveBtn').style.display = '';
+    document.getElementById('status').textContent = t('resetStatus');
+}
+
+// === EVENTS ===
+document.getElementById('submitBtn').addEventListener('click', submitWord);
+document.getElementById('undoBtn').addEventListener('click', undoLast);
+document.getElementById('clearWordBtn').addEventListener('click', clearSelection);
+document.getElementById('solveBtn').addEventListener('click', solveBoard);
+document.getElementById('randomBtn').addEventListener('click', randomBoard);
+document.getElementById('editBtn').addEventListener('click', editBoard);
+document.getElementById('resetBtn').addEventListener('click', resetGame);
+
+document.addEventListener('keydown', (e) => {
+    if (mode === 'play' && e.key === 'Enter') submitWord();
+    if (mode === 'play' && e.key === 'Backspace') undoLast();
+    if (mode === 'play' && e.key === 'Escape') clearSelection();
+});
+
+// === INIT ===
+buildSetupGrid();
+loadDictionary('en', 'normal');
+
+// === SERVICE WORKER (offline support) ===
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+        console.log('Service worker registered — Normal mode works offline after first load.');
+    }).catch((err) => {
+        console.log('Service worker not available:', err);
+    });
+}
+</script>
+</body>
+</html>
