@@ -35,6 +35,13 @@ h1 { color: #FF9900; margin-bottom: 12px; }
 .btn-edit { background: #146eb4; color: white; }
 .btn-edit:hover { background: #1a8cdb; }
 .buttons { margin-bottom: 10px; }
+.buttons-top { margin-bottom: 10px; display: flex; gap: 8px; justify-content: center; }
+.btn-row-submit { width: 100%; margin-bottom: 6px; }
+.btn-row-submit .btn-submit { width: 100%; padding: 14px; font-size: 16px; border-radius: 8px; }
+.btn-row-secondary { display: flex; gap: 4px; width: 75%; margin: 0 auto 10px; }
+.btn-row-secondary .btn-undo { flex: 4; }
+.btn-row-secondary .btn-clear-word { flex: 4; }
+.btn-row-secondary .btn-reset { flex: 2; margin-left: 8px; }
 .side-panel { max-width: 300px; width: 100%; }
 .panel-header { font-size: 16px; font-weight: bold; color: #FF9900; margin-bottom: 8px; }
 .found-list { list-style: none; max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 8px; background: #fff; margin-bottom: 16px; }
@@ -109,19 +116,21 @@ h1 { color: #FF9900; margin-bottom: 12px; }
 <div class="container">
     <div class="grid-section">
         <div id="modeLabel" class="mode-label">SETUP MODE — enter letters</div>
+        <div class="buttons-top">
+            <button class="btn btn-random" id="randomBtn">Random Board</button>
+            <button class="btn btn-edit" id="editBtn" style="display:none;">✏ Edit Board</button>
+            <button class="btn btn-solve" id="solveBtn" style="display:none;">🔍 Check & Solve</button>
+        </div>
         <div class="grid" id="grid"></div>
         <div class="current-word" id="currentWord"></div>
         <div id="hints" style="min-height:20px;margin-bottom:10px;max-width:340px;line-height:1.8;text-align:center;"></div>
-        <div class="buttons">
-            <button class="btn btn-submit" id="submitBtn" style="display:none;">✓ Submit Word</button>
-            <button class="btn btn-undo" id="undoBtn" style="display:none;">← Undo</button>
-            <button class="btn btn-clear-word" id="clearWordBtn" style="display:none;">✗ Clear</button>
+        <div class="btn-row-submit" id="submitRow" style="display:none;">
+            <button class="btn btn-submit" id="submitBtn">✓ Submit Word</button>
         </div>
-        <div class="buttons">
-            <button class="btn btn-random" id="randomBtn">Random Board</button>
-            <button class="btn btn-edit" id="editBtn" style="display:none;">✏ Edit Board</button>
-            <button class="btn btn-reset" id="resetBtn" style="display:none;">Reset Game</button>
-            <button class="btn btn-solve" id="solveBtn" style="display:none;">🔍 Check & Solve</button>
+        <div class="btn-row-secondary" id="secondaryRow" style="display:none;">
+            <button class="btn btn-undo" id="undoBtn">← Undo</button>
+            <button class="btn btn-clear-word" id="clearWordBtn">✗ Clear</button>
+            <button class="btn btn-reset" id="resetBtn">Reset</button>
         </div>
     </div>
     <div class="side-panel" id="sidePanel" style="display:none;">
@@ -399,6 +408,34 @@ async function loadDictionary(lang, dictMode) {
     }
 }
 
+// === UI STATE HELPERS ===
+function showSetupUI() {
+    document.getElementById('modeLabel').textContent = t('setupMode');
+    document.getElementById('submitRow').style.display = 'none';
+    document.getElementById('secondaryRow').style.display = 'none';
+    document.getElementById('solveBtn').style.display = 'none';
+    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('randomBtn').style.display = '';
+    document.getElementById('sidePanel').style.display = 'none';
+}
+
+function showPlayUI() {
+    document.getElementById('modeLabel').textContent = t('playMode');
+    document.getElementById('submitRow').style.display = '';
+    document.getElementById('secondaryRow').style.display = 'flex';
+    document.getElementById('solveBtn').style.display = '';
+    document.getElementById('editBtn').style.display = '';
+    document.getElementById('randomBtn').style.display = 'none';
+    document.getElementById('sidePanel').style.display = '';
+    document.getElementById('missedSection').style.display = 'none';
+}
+
+function showSolvedUI() {
+    document.getElementById('submitRow').style.display = 'none';
+    document.getElementById('secondaryRow').style.display = 'none';
+    document.getElementById('solveBtn').style.display = 'none';
+}
+
 // === DICT MODE SWITCH ===
 function switchDictMode(dictMode) {
     if (dictMode === currentDictMode) return;
@@ -410,15 +447,7 @@ function switchDictMode(dictMode) {
     selectedPath = [];
     boardLetters = [];
     buildSetupGrid();
-    document.getElementById('modeLabel').textContent = t('setupMode');
-    document.getElementById('submitBtn').style.display = 'none';
-    document.getElementById('undoBtn').style.display = 'none';
-    document.getElementById('clearWordBtn').style.display = 'none';
-    document.getElementById('solveBtn').style.display = 'none';
-    document.getElementById('editBtn').style.display = 'none';
-    document.getElementById('resetBtn').style.display = 'none';
-    document.getElementById('randomBtn').style.display = '';
-    document.getElementById('sidePanel').style.display = 'none';
+    showSetupUI();
     loadDictionary(currentLang, currentDictMode);
 }
 
@@ -434,15 +463,7 @@ function switchLanguage(lang) {
     selectedPath = [];
     boardLetters = [];
     buildSetupGrid();
-    document.getElementById('modeLabel').textContent = t('setupMode');
-    document.getElementById('submitBtn').style.display = 'none';
-    document.getElementById('undoBtn').style.display = 'none';
-    document.getElementById('clearWordBtn').style.display = 'none';
-    document.getElementById('solveBtn').style.display = 'none';
-    document.getElementById('editBtn').style.display = 'none';
-    document.getElementById('resetBtn').style.display = 'none';
-    document.getElementById('randomBtn').style.display = '';
-    document.getElementById('sidePanel').style.display = 'none';
+    showSetupUI();
     loadDictionary(lang, currentDictMode);
 }
 
@@ -459,15 +480,7 @@ function switchGridSize(size) {
     selectedPath = [];
     boardLetters = [];
     buildSetupGrid();
-    document.getElementById('modeLabel').textContent = t('setupMode');
-    document.getElementById('submitBtn').style.display = 'none';
-    document.getElementById('undoBtn').style.display = 'none';
-    document.getElementById('clearWordBtn').style.display = 'none';
-    document.getElementById('solveBtn').style.display = 'none';
-    document.getElementById('editBtn').style.display = 'none';
-    document.getElementById('resetBtn').style.display = 'none';
-    document.getElementById('randomBtn').style.display = '';
-    document.getElementById('sidePanel').style.display = 'none';
+    showSetupUI();
 }
 
 function updateTitle() {
@@ -701,16 +714,7 @@ function startPlay() {
     foundWords = [];
     selectedPath = [];
     buildPlayGrid();
-    document.getElementById('modeLabel').textContent = t('playMode');
-    document.getElementById('submitBtn').style.display = '';
-    document.getElementById('undoBtn').style.display = '';
-    document.getElementById('clearWordBtn').style.display = '';
-    document.getElementById('solveBtn').style.display = '';
-    document.getElementById('editBtn').style.display = '';
-    document.getElementById('resetBtn').style.display = '';
-    document.getElementById('randomBtn').style.display = 'none';
-    document.getElementById('sidePanel').style.display = '';
-    document.getElementById('missedSection').style.display = 'none';
+    showPlayUI();
     updateFoundList();
     document.getElementById('status').textContent = t('playStatus');
 }
@@ -767,10 +771,7 @@ function solveBoard() {
 
     document.getElementById('yourScore').textContent = validFound.reduce((s, w) => s + scoreWord(w), 0);
 
-    document.getElementById('submitBtn').style.display = 'none';
-    document.getElementById('undoBtn').style.display = 'none';
-    document.getElementById('clearWordBtn').style.display = 'none';
-    document.getElementById('solveBtn').style.display = 'none';
+    showSolvedUI();
     document.getElementById('modeLabel').textContent = t('solved')(validFound.length, allWords.size);
     document.getElementById('status').textContent = t('solvedStatus')(validFound.length, invalidFound.length, missed.length, allWords.size);
 }
@@ -790,16 +791,7 @@ function randomBoard() {
     foundWords = [];
     selectedPath = [];
     buildPlayGrid();
-    document.getElementById('modeLabel').textContent = t('playMode');
-    document.getElementById('submitBtn').style.display = '';
-    document.getElementById('undoBtn').style.display = '';
-    document.getElementById('clearWordBtn').style.display = '';
-    document.getElementById('solveBtn').style.display = '';
-    document.getElementById('editBtn').style.display = '';
-    document.getElementById('resetBtn').style.display = '';
-    document.getElementById('randomBtn').style.display = 'none';
-    document.getElementById('sidePanel').style.display = '';
-    document.getElementById('missedSection').style.display = 'none';
+    showPlayUI();
     updateFoundList();
     document.getElementById('status').textContent = t('playStatus');
 }
@@ -808,15 +800,7 @@ function randomBoard() {
 function editBoard() {
     mode = 'setup';
     buildSetupGrid();
-    document.getElementById('modeLabel').textContent = t('setupMode');
-    document.getElementById('submitBtn').style.display = 'none';
-    document.getElementById('undoBtn').style.display = 'none';
-    document.getElementById('clearWordBtn').style.display = 'none';
-    document.getElementById('solveBtn').style.display = 'none';
-    document.getElementById('editBtn').style.display = 'none';
-    document.getElementById('resetBtn').style.display = 'none';
-    document.getElementById('randomBtn').style.display = '';
-    document.getElementById('sidePanel').style.display = 'none';
+    showSetupUI();
 }
 
 function resetGame() {
@@ -825,12 +809,7 @@ function resetGame() {
     mode = 'play';
     buildPlayGrid();
     updateFoundList();
-    document.getElementById('missedSection').style.display = 'none';
-    document.getElementById('modeLabel').textContent = t('playMode');
-    document.getElementById('submitBtn').style.display = '';
-    document.getElementById('undoBtn').style.display = '';
-    document.getElementById('clearWordBtn').style.display = '';
-    document.getElementById('solveBtn').style.display = '';
+    showPlayUI();
     document.getElementById('status').textContent = t('resetStatus');
 }
 
