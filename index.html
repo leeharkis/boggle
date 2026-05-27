@@ -36,12 +36,15 @@ h1 { color: #FF9900; margin-bottom: 12px; }
 .btn-edit:hover { background: #1a8cdb; }
 .buttons { margin-bottom: 10px; }
 .buttons-top { margin-bottom: 10px; display: flex; gap: 8px; justify-content: center; }
-.btn-row-submit { width: 100%; margin-bottom: 6px; }
+.btn-row-submit { width: 100%; margin-top: 3px; margin-bottom: 6px; }
 .btn-row-submit .btn-submit { width: 100%; padding: 14px; font-size: 16px; border-radius: 8px; }
-.btn-row-secondary { display: flex; gap: 4px; width: 75%; margin: 0 auto 10px; }
+.btn-row-secondary { display: flex; gap: 4px; width: 75%; margin: 0 auto 6px; }
 .btn-row-secondary .btn-undo { flex: 4; }
 .btn-row-secondary .btn-clear-word { flex: 4; }
 .btn-row-secondary .btn-reset { flex: 2; margin-left: 8px; }
+.btn-row-solve { display: flex; gap: 4px; width: 75%; margin: 0 auto 10px; margin-top: 3px; }
+.btn-row-solve .btn-solve { flex: 8; }
+.btn-row-solve .btn-edit { flex: 2; padding: 10px; font-size: 16px; }
 .side-panel { max-width: 300px; width: 100%; }
 .panel-header { font-size: 16px; font-weight: bold; color: #FF9900; margin-bottom: 8px; }
 .found-list { list-style: none; max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; padding: 8px; background: #fff; margin-bottom: 16px; }
@@ -64,7 +67,7 @@ h1 { color: #FF9900; margin-bottom: 12px; }
 .lang-btn { padding: 6px 14px; border: 2px solid #ccc; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; background: #fff; color: #333; transition: all 0.15s; }
 .lang-btn.active { border-color: #FF9900; background: #FF9900; color: #000; }
 .lang-btn:hover { border-color: #FF9900; }
-.options-panel { margin-bottom: 16px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0; max-width: 360px; width: 100%; }
+.options-panel { margin-top: 12px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 0; max-width: 360px; width: 100%; }
 .options-panel summary { padding: 10px 16px; font-weight: bold; font-size: 14px; cursor: pointer; color: #555; }
 .options-panel[open] summary { border-bottom: 1px solid #eee; }
 .options-content { padding: 12px 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -80,58 +83,59 @@ h1 { color: #FF9900; margin-bottom: 12px; }
 </head>
 <body>
 <h1 id="gameTitle">🎲 Big Boggle (5×5)</h1>
-<details class="options-panel" id="optionsPanel">
-    <summary id="optionsSummary">Options</summary>
-    <div class="options-content">
-        <div class="option-row">
-            <span class="option-label">Language</span>
-            <div class="lang-toggle">
-                <button class="lang-btn active" id="langEN" onclick="switchLanguage('en')"><img src="https://flagcdn.com/w40/gb.png" alt="EN" style="height:24px;vertical-align:middle;"></button>
-                <button class="lang-btn" id="langDE" onclick="switchLanguage('de')"><img src="https://flagcdn.com/w40/de.png" alt="DE" style="height:24px;vertical-align:middle;"></button>
-            </div>
-        </div>
-        <div class="option-row">
-            <span class="option-label">Word hints</span>
-            <label class="switch"><input type="checkbox" id="hintsToggle" checked><span class="slider"></span></label>
-        </div>
-        <div class="option-row">
-            <span class="option-label" id="labelGridSize">Grid size</span>
-            <div class="lang-toggle">
-                <button class="lang-btn" id="size4" onclick="switchGridSize(4)">4×4</button>
-                <button class="lang-btn active" id="size5" onclick="switchGridSize(5)">5×5</button>
-                <button class="lang-btn" id="size6" onclick="switchGridSize(6)">6×6</button>
-            </div>
-        </div>
-        <div class="option-row">
-            <span class="option-label">Word obscurity</span>
-            <div class="lang-toggle">
-                <button class="lang-btn active" id="modeNormal" onclick="switchDictMode('normal')">🎯 Normal</button>
-                <button class="lang-btn" id="modeBuddy" onclick="switchDictMode('buddy')">🤓 Buddy</button>
-            </div>
-        </div>
-        <div id="dictCount" style="font-size:11px;color:#999;text-align:right;"></div>
-    </div>
-</details>
-<div id="status" class="status">Loading dictionary...</div>
+<div id="status" class="status"></div>
 <div class="container">
     <div class="grid-section">
-        <div id="modeLabel" class="mode-label">SETUP MODE — enter letters</div>
         <div class="buttons-top">
             <button class="btn btn-random" id="randomBtn">Random Board</button>
-            <button class="btn btn-edit" id="editBtn" style="display:none;">✏ Edit Board</button>
-            <button class="btn btn-solve" id="solveBtn" style="display:none;">🔍 Check & Solve</button>
         </div>
         <div class="grid" id="grid"></div>
-        <div class="current-word" id="currentWord"></div>
-        <div id="hints" style="min-height:20px;margin-bottom:10px;max-width:340px;line-height:1.8;text-align:center;"></div>
         <div class="btn-row-submit" id="submitRow" style="display:none;">
             <button class="btn btn-submit" id="submitBtn">✓ Submit Word</button>
         </div>
+        <div class="current-word" id="currentWord"></div>
+        <div id="hints" style="min-height:20px;margin-bottom:6px;max-width:340px;line-height:1.8;text-align:center;"></div>
         <div class="btn-row-secondary" id="secondaryRow" style="display:none;">
             <button class="btn btn-undo" id="undoBtn">← Undo</button>
             <button class="btn btn-clear-word" id="clearWordBtn">✗ Clear</button>
             <button class="btn btn-reset" id="resetBtn">Reset</button>
         </div>
+        <div class="btn-row-solve" id="solveRow" style="display:none;">
+            <button class="btn btn-solve" id="solveBtn">🔍 Check & Solve</button>
+            <button class="btn btn-edit" id="editBtn">✏</button>
+        </div>
+        <details class="options-panel" id="optionsPanel">
+            <summary id="optionsSummary">Options</summary>
+            <div class="options-content">
+                <div class="option-row">
+                    <span class="option-label">Language</span>
+                    <div class="lang-toggle">
+                        <button class="lang-btn active" id="langEN" onclick="switchLanguage('en')"><img src="https://flagcdn.com/w40/gb.png" alt="EN" style="height:24px;vertical-align:middle;"></button>
+                        <button class="lang-btn" id="langDE" onclick="switchLanguage('de')"><img src="https://flagcdn.com/w40/de.png" alt="DE" style="height:24px;vertical-align:middle;"></button>
+                    </div>
+                </div>
+                <div class="option-row">
+                    <span class="option-label">Word hints</span>
+                    <label class="switch"><input type="checkbox" id="hintsToggle" checked><span class="slider"></span></label>
+                </div>
+                <div class="option-row">
+                    <span class="option-label" id="labelGridSize">Grid size</span>
+                    <div class="lang-toggle">
+                        <button class="lang-btn" id="size4" onclick="switchGridSize(4)">4×4</button>
+                        <button class="lang-btn active" id="size5" onclick="switchGridSize(5)">5×5</button>
+                        <button class="lang-btn" id="size6" onclick="switchGridSize(6)">6×6</button>
+                    </div>
+                </div>
+                <div class="option-row">
+                    <span class="option-label">Word obscurity</span>
+                    <div class="lang-toggle">
+                        <button class="lang-btn active" id="modeNormal" onclick="switchDictMode('normal')">🎯 Normal</button>
+                        <button class="lang-btn" id="modeBuddy" onclick="switchDictMode('buddy')">🤓 Buddy</button>
+                    </div>
+                </div>
+                <div id="dictCount" style="font-size:11px;color:#999;text-align:right;"></div>
+            </div>
+        </details>
     </div>
     <div class="side-panel" id="sidePanel" style="display:none;">
         <div class="score-box">
@@ -326,14 +330,11 @@ function updateUILanguage() {
     document.getElementById('undoBtn').textContent = t('undo');
     document.getElementById('clearWordBtn').textContent = t('clear');
     document.getElementById('randomBtn').textContent = t('random');
-    document.getElementById('editBtn').textContent = t('edit');
     document.getElementById('resetBtn').textContent = t('reset');
     document.getElementById('solveBtn').textContent = t('solve');
     document.querySelector('.score-box .label').textContent = t('yourScore');
     document.querySelector('.panel-header').innerHTML = `${t('yourWords')} (<span id="foundCount">${foundWords.length}</span>)`;
     document.querySelector('.missed-header').innerHTML = `${t('missedWords')} (<span id="missedCount">0</span>)`;
-    if (mode === 'setup') document.getElementById('modeLabel').textContent = t('setupMode');
-    else if (mode === 'play') document.getElementById('modeLabel').textContent = t('playMode');
     updateDictCount();
 }
 
@@ -374,8 +375,7 @@ async function loadDictionary(lang, dictMode) {
         document.getElementById('status').textContent = '';
         return;
     }
-    const label = dictMode === 'buddy' ? t('labelLoadBuddy') : t('labelLoadNormal');
-    document.getElementById('status').textContent = t('loadingDict')(label);
+    document.getElementById('status').textContent = '';
     try {
         const url = DICT_URLS[key];
         const resp = await fetch(url);
@@ -410,21 +410,17 @@ async function loadDictionary(lang, dictMode) {
 
 // === UI STATE HELPERS ===
 function showSetupUI() {
-    document.getElementById('modeLabel').textContent = t('setupMode');
     document.getElementById('submitRow').style.display = 'none';
     document.getElementById('secondaryRow').style.display = 'none';
-    document.getElementById('solveBtn').style.display = 'none';
-    document.getElementById('editBtn').style.display = 'none';
+    document.getElementById('solveRow').style.display = 'none';
     document.getElementById('randomBtn').style.display = '';
     document.getElementById('sidePanel').style.display = 'none';
 }
 
 function showPlayUI() {
-    document.getElementById('modeLabel').textContent = t('playMode');
     document.getElementById('submitRow').style.display = '';
     document.getElementById('secondaryRow').style.display = 'flex';
-    document.getElementById('solveBtn').style.display = '';
-    document.getElementById('editBtn').style.display = '';
+    document.getElementById('solveRow').style.display = 'flex';
     document.getElementById('randomBtn').style.display = 'none';
     document.getElementById('sidePanel').style.display = '';
     document.getElementById('missedSection').style.display = 'none';
@@ -433,7 +429,7 @@ function showPlayUI() {
 function showSolvedUI() {
     document.getElementById('submitRow').style.display = 'none';
     document.getElementById('secondaryRow').style.display = 'none';
-    document.getElementById('solveBtn').style.display = 'none';
+    document.getElementById('solveRow').style.display = 'none';
 }
 
 // === DICT MODE SWITCH ===
@@ -672,12 +668,11 @@ function undoLast() {
 
 function submitWord() {
     const word = selectedPath.map(i => boardLetters[i]).join('');
-    if (word.length < 3) { document.getElementById('status').textContent = t('tooShort'); return; }
-    if (foundWords.includes(word)) { document.getElementById('status').textContent = t('alreadySubmitted')(word); return; }
+    if (word.length < 3) { return; }
+    if (foundWords.includes(word)) { return; }
     foundWords.push(word);
     updateFoundList();
     clearSelection();
-    document.getElementById('status').textContent = t('added')(word);
 }
 
 function updateFoundList() {
@@ -716,7 +711,6 @@ function startPlay() {
     buildPlayGrid();
     showPlayUI();
     updateFoundList();
-    document.getElementById('status').textContent = t('playStatus');
 }
 
 // === SOLVE ===
@@ -772,8 +766,7 @@ function solveBoard() {
     document.getElementById('yourScore').textContent = validFound.reduce((s, w) => s + scoreWord(w), 0);
 
     showSolvedUI();
-    document.getElementById('modeLabel').textContent = t('solved')(validFound.length, allWords.size);
-    document.getElementById('status').textContent = t('solvedStatus')(validFound.length, invalidFound.length, missed.length, allWords.size);
+    document.getElementById('status').textContent = t('solved')(validFound.length, allWords.size) + ' — ' + t('solvedStatus')(validFound.length, invalidFound.length, missed.length, allWords.size);
 }
 
 // === RANDOM BOARD ===
@@ -793,7 +786,6 @@ function randomBoard() {
     buildPlayGrid();
     showPlayUI();
     updateFoundList();
-    document.getElementById('status').textContent = t('playStatus');
 }
 
 // === EDIT / RESET ===
@@ -810,7 +802,6 @@ function resetGame() {
     buildPlayGrid();
     updateFoundList();
     showPlayUI();
-    document.getElementById('status').textContent = t('resetStatus');
 }
 
 // === EVENTS ===
