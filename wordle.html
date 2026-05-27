@@ -256,15 +256,21 @@ function renderKeyboard() {
 
 // === INIT ===
 initBoard();
-const prefill = 'arise';
-for (let i = 0; i < 5; i++) {
-    board[0][i].letter = prefill[i];
-    board[0][i].state = 'grey';
-}
-currentCol = 5;
 renderBoard();
 renderKeyboard();
-solve();
+
+// Show starter suggestions instead of running solver on empty board
+const starterEl = document.getElementById('suggestions');
+const starters = ['arose', 'arise', 'slate', 'crane', 'audio', 'salet', 'carte', 'trace'];
+starters.forEach((w, i) => {
+    const span = document.createElement('span');
+    span.className = `suggestion${i === 0 ? ' best' : ''}`;
+    span.textContent = w;
+    span.style.cursor = 'pointer';
+    span.addEventListener('click', () => { fillWord(w); solve(); });
+    starterEl.appendChild(span);
+});
+document.getElementById('resultsCount').textContent = `${WORDS.length} possible answers remaining`;
 </script>
 </body>
 </html>
